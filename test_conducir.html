@@ -1,0 +1,827 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Simulador Test de Conducción</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+  <style>
+/* Variables */
+:root{
+--bg:#0f1724;
+--card:#0b1220;
+--accent:#27ae60;
+--muted:#9aa7b2;
+--glass: rgba(255,255,255,0.04);
+--radius:14px;
+--shadow: 0 8px 30px rgba(2,6,23,0.6);
+font-family: 'Nunito Sans', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+}
+
+/* Mode clar */
+.light {
+--bg: #f2f4f6;
+--card: #f8f9fb;
+--accent: #1e8e53;
+--muted: #6b747b;
+--glass: rgba(0,0,0,0.03);
+--shadow: 0 6px 16px rgba(0,0,0,0.05);
+
+--option-bg: #ffffffee;
+--option-border: rgba(0,0,0,0.08);
+--label-bg: rgba(0,0,0,0.05);
+
+--button-bg: #ffffffee;
+--button-color: var(--accent);
+}
+
+body.light .option{
+background: var(--option-bg);
+border:1px solid var(--option-border);
+color:#0e1a25;
+}
+body.light .option.selected {
+  background: rgba(39,174,96,0.15) !important;
+  border: 2px solid rgba(39,174,96,0.55) !important;
+  color: #08351c;
+  box-shadow: 0 0 10px rgba(39,174,96,0.25);
+}
+body.light .option .label{
+background:var(--label-bg);
+color:#0e1a25;
+}
+body.light .qbtn{
+background:#ffffffcc;
+border:1px solid rgba(0,0,0,0.08);
+color:#0e1a25;
+}
+body.light .qbtn.done{
+background:#e6eef4;
+color:#0e1a25;
+border-color:rgba(0,0,0,0.12);
+}
+body.light .qbtn.current{
+outline:2px solid rgba(59,130,246,0.25);
+}
+body.light #timer {
+background: rgba(30,142,83,0.12);
+color: #186c45;
+border: 1px solid rgba(0,0,0,0.06);
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  min-height:100vh;
+  background:var(--bg);
+  color:var(--muted);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:32px;
+  transition: background .25s ease, color .25s ease;
+}
+
+/* Fons nocturn */
+body:not(.light){
+  color:#e6eef6;
+  background:linear-gradient(180deg,#071226 0%, #021022 100%);
+}
+
+/* Layout */
+.wrap{width:100%;max-width:980px}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+h1{font-size:20px;margin:0;font-weight:800;letter-spacing:-0.2px}
+.meta{color:var(--muted);font-size:13px}
+
+.card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);}
+.layout{display:grid;grid-template-columns:1fr 320px;gap:18px}
+
+.question-area{padding:18px}
+.question-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.progress{flex:1}
+.progress > div{height:8px;background:var(--glass);border-radius:8px;overflow:hidden}
+.progress > div > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#38d39f);width:0%}
+
+.timer{font-weight:700;color:#bfeed0;background:rgba(39,174,96,0.08);padding:6px 10px;border-radius:999px;font-size:13px}
+
+.question{font-size:18px;margin:8px 0 18px}
+
+.options{display:grid;gap:10px}
+.option{
+  background:#071826;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,0.03);
+  cursor:pointer;
+  transition:transform .12s ease, box-shadow .12s ease, background .12s;
+  color: inherit;
+}
+.option:hover{transform:translateY(-3px)}
+.option .label{
+  display:inline-block;width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;margin-right:12px;font-weight:700
+}
+.option.selected {
+  background: rgba(39,174,96,0.18) !important;
+  border: 2px solid rgba(39,174,96,0.45) !important;
+  box-shadow: 0 0 12px rgba(39,174,96,0.25);
+  transform: scale(1.02);
+  color: #eafff0;
+}
+.controls{display:flex;gap:8px;align-items:center;margin-top:16px}
+button{background:var(--accent);border:none;padding:10px 14px;border-radius:10px;color:#04211a;font-weight:700;cursor:pointer}
+button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.05);color:var(--muted);font-weight:600}
+
+body.light button{
+  background:var(--button-bg);
+  color:var(--button-color);
+  border:1px solid rgba(0,0,0,0.06);
+}
+body.light button.ghost{
+  background:transparent;
+  color:var(--muted);
+  border:1px solid rgba(0,0,0,0.06);
+}
+
+/* Sidebar */
+.sidebar{padding:18px;display:flex;flex-direction:column;gap:12px}
+.card-small{background:rgba(255,255,255,0.02);padding:12px;border-radius:12px}
+.qnav{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.qbtn{padding:8px;border-radius:8px;text-align:center;cursor:pointer;border:1px dashed rgba(255,255,255,0.03)}
+.qbtn.done{background:rgba(39,174,96,0.12);color:#bff2d9;border-style:solid}
+.qbtn.current{outline:2px solid rgba(59,130,246,0.18)}
+
+/* Estil de respostes correctes a la revisió */
+.option.correct-review {
+  background: rgba(39,174,96,0.18) !important;
+  border: 2px solid rgba(39,174,96,0.45) !important;
+  box-shadow: 0 0 12px rgba(39,174,96,0.25);
+  transform: scale(1.02);
+  color: #eafff0;
+}
+body.light .option.correct-review {
+  background: rgba(39,174,96,0.15) !important;
+  border: 2px solid rgba(39,174,96,0.55) !important;
+  box-shadow: 0 0 10px rgba(39,174,96,0.25);
+  color: #08351c;
+}
+
+footer{margin-top:12px;text-align:center;color:var(--muted);font-size:13px}
+
+/* Modal de resultats */
+
+#resultsModal{
+  width:100%;
+  max-width:620px;
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(18px);
+  border-radius:20px;
+  padding:28px;
+  color:#eaf3ff;
+  animation: pop 0.25s ease both;
+  box-shadow:0 8px 30px rgba(0,0,0,0.5);
+}
+
+@keyframes pop {
+  from{opacity:0; transform:scale(.85);}
+  to{opacity:1; transform:scale(1);}
+}
+
+body.light #resultsModal{
+  background:rgba(255,255,255,0.75);
+  color:#1c1f23;
+}
+
+.modal-title{
+  font-size:22px;
+  font-weight:800;
+  margin-bottom:14px;
+}
+
+.modal-stat{
+  display:flex;
+  justify-content:space-between;
+  padding:8px 0;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+}
+body.light .modal-stat{
+  border-color:rgba(0,0,0,0.1);
+}
+
+.wrong-list{
+  max-height:200px;
+  overflow:auto;
+  margin-top:14px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.wrong-item{
+  background:rgba(255,255,255,0.05);
+  border-radius:12px;
+  padding:12px;
+}
+body.light .wrong-item{background:rgba(0,0,0,0.04);}
+
+.modal-buttons{
+  display:flex;
+  gap:10px;
+  margin-top:14px;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  width: 260px;
+}
+
+.modal-content button {
+  margin: 10px;
+}
+
+#confirmModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+/* Modal contenidor */
+#confirmModal .modal-content {
+    background: #1e1e1e;
+    color: #f1f1f1;
+    padding: 22px;
+    border-radius: 14px;
+    width: 300px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+/* Mode clar */
+body.light #confirmModal .modal-content {
+    background: #ffffff;
+    color: #222222;
+    box-shadow: 0 0 18px rgba(0,0,0,0.15);
+}
+
+/* Botons */
+#confirmModal button {
+    padding: 10px 16px;
+    margin: 8px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.2s;
+}
+
+#confirmYes {
+    background: #27ae60;
+    color: white;
+}
+#confirmYes:hover {
+    background: #219150;
+}
+
+#confirmNo {
+    background: #e63946;
+    color: white;
+}
+#confirmNo:hover {
+    background: #cc2f3c;
+}
+
+
+/* Millores visuals i errors */
+
+.wrong-item {
+    border-left: 4px solid #27ae60;
+    padding: 14px;
+    font-size: 16px;
+    color: #d7ffe6;
+}
+
+body.light .wrong-item {
+    border-left: 4px solid #1e8e53;
+    color: #1e8e53;
+}
+
+/* Títol de cada pregunta */
+.wrong-item > div:first-child {
+    font-size: 18px;
+    font-weight: 800;
+    color: #55ff99;
+}
+
+body.light .wrong-item > div:first-child {
+    color: #166b3f;
+}
+
+/* Texte "La teva resposta" */
+.wrong-item div:nth-child(2) {
+    font-size: 15px;
+    margin-top: 6px;
+    color: #ff8484;
+}
+
+body.light .wrong-item div:nth-child(2) {
+    color: #d13b3b;
+}
+
+/* Texte correcte */
+.wrong-item div:nth-child(3) {
+    font-size: 15px;
+    margin-top: 3px;
+    color: #88ffbf;
+}
+
+body.light .wrong-item div:nth-child(3) {
+    color: #1f8e54;
+}
+
+/* Explicació */
+.wrong-item div:nth-child(4) {
+    font-size: 13px;
+    margin-top: 6px;
+    opacity: 0.85;
+}
+
+.wrong-item .correct-answer {
+    color: #4cff8f !important;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+body.light .wrong-item .correct-answer {
+    color: #1ea85c !important;
+}
+
+#timeUpModal .modal-content {
+  background: #1e1e1e;
+  color: #f1f1f1;
+  padding: 22px;
+  border-radius: 14px;
+  width: 300px;
+  text-align: center;
+}
+
+body.light #timeUpModal .modal-content {
+  background: #ffffff;
+  color: #222;
+}
+
+#timeUpModal button {
+  padding: 10px 16px;
+  margin-top: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #27ae60;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+}
+/* Opció incorrecta escollida */
+.option.wrong-selected {
+  background: rgba(235, 84, 84, 0.18) !important;
+  border: 2px solid rgba(235, 84, 84, 0.45) !important;
+  box-shadow: 0 0 12px rgba(235, 84, 84, 0.25);
+  transform: scale(1.02);
+  color: #ffeaea;
+}
+
+body.light .option.wrong-selected {
+  background: rgba(235, 84, 84, 0.12) !important;
+  border: 2px solid rgba(235, 84, 84, 0.45) !important;
+  color: #6b1212;
+}
+
+
+@media (max-width:880px){.layout{grid-template-columns:1fr;}.sidebar{order:2}}
+  </style>
+</head>
+
+<body id="body">
+
+<div class="wrap">
+
+  <div class="header">
+    <div>
+      <h1>Test de Conducció</h1>
+      <div class="meta">Preguntes tipus examen — respostes automarcades y estadístiques</div>
+    </div>
+
+    <div style="display:flex;gap:12px;align-items:center">
+      <button id="themeToggle" class="ghost" aria-pressed="false">Modo claro</button>
+      <div class="meta">Los interactivos • Km 0</div>
+    </div>
+  </div>
+
+  <div class="card layout">
+
+    <div class="question-area">
+      <div class="question-top">
+        <div class="progress"><div><i id="progressBar"></i></div></div>
+
+        <!-- NOMÉS UN TIMER -->
+        <div class="timer" id="timer">--:--</div>
+
+        <button id="resetBtn" class="ghost" style="font-size:12px;padding:4px 8px;">Reiniciar Test</button>
+      </div>
+
+      <div id="quiz"></div>
+
+      <div class="controls">
+        <button class="ghost" id="prevBtn">Anterior</button>
+        <button class="ghost" id="nextBtn">Següent</button>
+        <div style="flex:1"></div>
+        <button id="submitBtn">Enviar</button>
+      </div>
+    </div>
+
+    <aside class="sidebar">
+      <div class="card-small">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:13px;color:var(--muted)">Preguntes</div>
+            <div id="qCount" style="font-weight:800;font-size:20px">0</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:13px;color:var(--muted)">Temps total</div>
+            <div id="totalTime" style="font-weight:700">--:--</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-small">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px">Navegació rápida</div>
+        <div class="qnav" id="qNav"></div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- MODAL DE CONFIRMACIÓ -->
+  <div id="confirmModal" class="modal">
+    <div class="modal-content">
+      <p>¿Segur que vols enviar les teves respostes?</p>
+      <button id="confirmYes">Sí</button>
+      <button id="confirmNo">No</button>
+    </div>
+  </div>
+
+  <!-- MODAL: TEMPS ESGOTAT -->
+<div id="timeUpModal" class="modal">
+  <div class="modal-content">
+      <p>🚗 El temps s'ha esgotat</p>
+      <button id="timeUpRetry">Reintentar</button>
+  </div>
+</div>
+
+
+  <footer></footer>
+
+</div>
+
+
+<script>
+/* Config */
+const TOTAL_TIME_SECONDS = 5 * 60;
+
+const QUESTIONS = [
+  {q:'Què significa una línia contínua blanca al marge dret de la calçada?', choices:['Senyal d’avançament permès','Separació de carrils','Vora de la via, no es pot creuar'], correct:2, explain:'La línia contínua al marge indica el límit de la calçada i no s’ha de creuar.'},
+  {q:'Quina és la velocitat màxima en una via urbana ordinària si no hi ha senyalització?', choices:['30 km/h','50 km/h','90 km/h'], correct:1, explain:'La velocitat genèrica en nucli urbà és de 50 km/h llevat d’indicació contrària.'},
+  {q:'En apropar-te a un pas de vianants sense senyal, què has de fer?', choices:['Augmentar la velocitat per passar abans','Reduir la velocitat i cedir el pas si hi ha vianants','No fer res especial'], correct:1, explain:'Sempre s’ha de reduir la velocitat i cedir el pas als vianants presents.'},
+  {q:'Què indica un senyal de «STOP»?', choices:['Aturada obligatòria i cessió del pas','Prohibició de circular','Aparcament reservat'], correct:0, explain:'El STOP obliga a aturar-se i a cedir el pas segons la situació.'},
+  {q:'Quan està permès utilitzar el telèfon mòbil mentre condueixes?', choices:['Sempre que no sigui per parlar','Només amb mans lliures i sense manipular','Mai'], correct:1, explain:'Es permet l’ús amb mans lliures sense manipular el dispositiu.'},
+  {q:'En condicions de pluja intensa, què s’ha d’augmentar?', choices:['Distància de seguretat','Velocitat per evitar l’aiguaplanatge','Només l’ús de l’intermitent'], correct:0, explain:'Cal augmentar la distància de seguretat i reduir la velocitat.'},
+  {q:'Què és l’alcoholèmia de 0,5 g/l en sang?', choices:['Límit per a conductors novells','Límit general per a conductors','Valor per sobre del límit comú'], correct:2, explain:'0,5 g/l sol ser el límit general; valors per sobre constitueixen una infracció.'},
+  {q:'Si un vehicle ve en sentit contrari envaint el teu carril, què fas primer?', choices:['Tocar el clàxon i mantenir el rumb','Avaluar i maniobrar per evitar la col·lisió','Activar les llums llargues constantment'], correct:1, explain:'Primer cal maniobrar per evitar la col·lisió i reduir la velocitat; el clàxon pot ajudar.'}
+];
+
+/* Estat */
+let state = {
+  current:0,
+  answers:Array(QUESTIONS.length).fill(null),
+  startTime:null,
+  timestamps:Array(QUESTIONS.length).fill(null),
+  timer:null,
+  remaining:TOTAL_TIME_SECONDS,
+  finished:false
+};
+
+/* Elements */
+const qCountEl=document.getElementById('qCount');
+const totalTimeEl=document.getElementById('totalTime');
+const qNav=document.getElementById('qNav');
+const quizEl=document.getElementById('quiz');
+const progressBar=document.getElementById('progressBar');
+const timerEl=document.getElementById('timer');
+const prevBtn=document.getElementById('prevBtn');
+const nextBtn=document.getElementById('nextBtn');
+const submitBtn=document.getElementById('submitBtn');
+
+/* Funcions */
+function secToMMSS(s){
+  const m=String(Math.floor(s/60)).padStart(2,'0');
+  const ss=String(s%60).padStart(2,'0');
+  return `${m}:${ss}`;
+}
+
+function init(){
+  qCountEl.textContent=QUESTIONS.length;
+  totalTimeEl.textContent=secToMMSS(TOTAL_TIME_SECONDS);
+  renderNav();
+  renderQuestion();
+  state.startTime=Date.now();
+  startTimer();
+}
+
+function renderNav(){
+  qNav.innerHTML='';
+  QUESTIONS.forEach((_,i)=>{
+    const b=document.createElement('div');
+    b.className='qbtn'+(i===state.current?' current':'')+(state.answers[i]!==null?' done':'');
+    b.textContent=i+1;
+    b.onclick=()=>goTo(i);
+    qNav.appendChild(b);
+  });
+}
+
+function renderQuestion(){
+  const q=QUESTIONS[state.current];
+  progressBar.style.width=`${(state.current)/(QUESTIONS.length-1||1)*100}%`;
+
+  quizEl.innerHTML=`
+    <div style="font-size:13px;color:var(--muted)">Pregunta ${state.current+1} de ${QUESTIONS.length}</div>
+    <div class="question">${escapeHtml(q.q)}</div>
+    <div class="options" id="options"></div>
+  `;
+
+  const optionsEl=document.getElementById('options');
+  q.choices.forEach((c,idx)=>{
+    const opt=document.createElement('div');
+    opt.className='option'+(state.answers[state.current]===idx ? ' selected':'');
+    opt.innerHTML=`
+      <div style="display:flex;align-items:center">
+        <div class="label">${String.fromCharCode(65+idx)}</div>
+        <div style="flex:1">${escapeHtml(c)}</div>
+      </div>`;
+    opt.onclick=()=>selectOption(idx);
+    optionsEl.appendChild(opt);
+  });
+
+  prevBtn.style.display=state.current===0?'none':'inline-block';
+  nextBtn.style.display=state.current===QUESTIONS.length-1?'none':'inline-block';
+
+  renderNav();
+}
+
+function selectOption(idx){
+  if(state.finished) return;
+  state.answers[state.current]=idx;
+  state.timestamps[state.current]=Date.now();
+  renderQuestion();
+}
+
+function goTo(i){
+  state.current=i;
+  renderQuestion();
+}
+
+prevBtn.onclick=()=>{ if(state.current>0){ state.current--; renderQuestion(); } }
+nextBtn.onclick=()=>{ if(state.current<QUESTIONS.length-1){ state.current++; renderQuestion(); } }
+
+function finalize(){
+  if(state.finished) return;
+  state.finished=true;
+  clearInterval(state.timer);
+
+  state.answers=state.answers.map(a=>a===null?-1:a);
+
+/* Oculta navegació i capçalera quan s'envia */
+  document.querySelector(".sidebar").style.display = "none";
+  document.querySelector(".question-top").style.display = "none";
+  document.querySelector(".layout").style.gridTemplateColumns = "1fr";
+
+  reviewAnswers();
+}
+
+
+function reviewAnswers(){
+const total = QUESTIONS.length;
+const correct = state.answers.filter((a, i) => a === QUESTIONS[i].correct).length;
+const wrong = total - correct;
+const percent = Math.round((correct / total) * 100);
+
+const timeSpent = TOTAL_TIME_SECONDS - state.remaining;
+
+/* Crear bloc d'estadístiques */
+const statsDiv = document.createElement('div');
+statsDiv.style.marginBottom = "25px";
+statsDiv.style.padding = "20px";
+statsDiv.style.borderRadius = "14px";
+statsDiv.style.background = "rgba(255,255,255,0.05)";
+statsDiv.style.color = "var(--muted)";
+statsDiv.style.fontSize = "16px";
+
+statsDiv.innerHTML = `
+  <div style="font-size:22px;font-weight:800;margin-bottom:10px;color:#fff">
+    📊 Resultados del Test
+  </div>
+
+  <div><strong>Encerts:</strong> ${correct} / ${total}</div>
+  <div><strong>Errors:</strong> ${wrong}</div>
+  <div><strong>Percentatge:</strong> ${percent}%</div>
+  <div><strong>Temps empleat:</strong> ${secToMMSS(timeSpent)}</div>
+  <div><strong>Temps total:</strong> ${secToMMSS(TOTAL_TIME_SECONDS)}</div>
+`;
+  quizEl.innerHTML='';
+
+
+  document.querySelector(".controls").style.display = "none";
+
+quizEl.appendChild(statsDiv);
+
+  QUESTIONS.forEach((q,idx)=>{
+    const container=document.createElement('div');
+    container.style.marginBottom='14px';
+    const chosen=state.answers[idx];
+
+container.innerHTML = `
+  <div style="font-size:20px;font-weight:800;color:var(--muted);margin-bottom:6px">
+    Pregunta ${idx+1}
+  </div>
+  <div class="question" style="font-size:22px;margin-top:4px">
+    ${escapeHtml(q.q)}
+  </div>
+`;
+
+
+    const opts=document.createElement('div'); 
+    opts.className='options';
+
+    q.choices.forEach((c,i)=>{
+      const o=document.createElement('div'); 
+      o.className='option';
+
+if (i === q.correct) {
+    o.classList.add('correct-review');
+}
+
+/* La teva opció marcada, però incorrecta */
+if (i === chosen && chosen !== q.correct) {
+    o.classList.add('wrong-selected');
+}
+
+
+      o.innerHTML=`
+        <div style="display:flex;align-items:center">
+          <div class="label">${String.fromCharCode(65+i)}</div>
+          <div style="flex:1">${escapeHtml(c)}</div>
+        </div>`;
+      opts.appendChild(o);
+    });
+
+    container.appendChild(opts);
+
+    const foot=document.createElement('div');
+    foot.style.color='var(--muted)';
+    foot.style.fontSize='13px';
+    foot.style.marginTop='8px';
+    foot.innerHTML=`<strong>Explicació:</strong> ${escapeHtml(q.explain)}`;
+
+    container.appendChild(foot);
+    quizEl.appendChild(container);
+  });
+
+  const retryDiv = document.createElement('div');
+  retryDiv.style.marginTop = '20px';
+  retryDiv.style.textAlign = 'center';
+  retryDiv.innerHTML = `
+    <button style="
+      padding:12px 20px;
+      border-radius:10px;
+      background:var(--accent);
+      color:#04211a;
+      font-weight:700;
+      cursor:pointer;">Reintentar</button>
+  `;
+  quizEl.appendChild(retryDiv);
+
+  retryDiv.querySelector('button').onclick = resetQuiz;
+
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function resetQuiz(){
+  // Restaurar distribució original
+document.querySelector(".sidebar").style.display = "flex";
+document.querySelector(".question-top").style.display = "flex";
+document.querySelector(".layout").style.gridTemplateColumns = "1fr 320px";
+
+  state={
+    current:0,
+    answers:Array(QUESTIONS.length).fill(null),
+    startTime:Date.now(),
+    timestamps:Array(QUESTIONS.length).fill(null),
+    timer:null,
+    remaining:TOTAL_TIME_SECONDS,
+    finished:false
+  };
+  renderQuestion();
+  startTimer();
+  document.querySelector(".controls").style.display = "flex";
+}
+
+function startTimer(){
+  clearInterval(state.timer);
+  timerEl.textContent=secToMMSS(state.remaining);
+
+  state.timer=setInterval(()=>{
+    state.remaining--;
+    timerEl.textContent=secToMMSS(state.remaining);
+
+    if (state.remaining <= 0) {
+    clearInterval(state.timer);
+    state.remaining = 0;
+    timerEl.textContent = '00:00';
+
+    // Mostrar modal de temps esgotat
+    document.getElementById("timeUpModal").style.display = "flex";
+}
+
+  },1000);
+}
+
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '';
+  const str = String(s);
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  };
+  return str.replace(/[&<>"']/g, (m) => map[m] || m);
+}
+
+
+/* Mode clar */
+document.getElementById('themeToggle').onclick=()=>{
+  document.body.classList.toggle('light');
+  const isLight=document.body.classList.contains('light');
+  themeToggle.textContent=isLight?'Mode nit':'Mode clar';
+  themeToggle.setAttribute('aria-pressed',isLight?'true':'false');
+};
+
+const resetBtn = document.getElementById('resetBtn');
+resetBtn.onclick = resetQuiz;
+
+
+/* Confirmar enviament */
+const modal = document.getElementById("confirmModal");
+
+document.getElementById("submitBtn").addEventListener("click", () => {
+    modal.style.display = "flex";
+});
+
+document.getElementById("confirmYes").addEventListener("click", () => {
+    modal.style.display = "none";
+    finalize();
+});
+
+document.getElementById("confirmNo").addEventListener("click", () => {
+    modal.style.display = "none";
+});
+
+document.getElementById("timeUpRetry").onclick = () => {
+    document.getElementById("timeUpModal").style.display = "none";
+    resetQuiz();
+};
+
+
+init();
+
+</script>
+</body>
+</html>

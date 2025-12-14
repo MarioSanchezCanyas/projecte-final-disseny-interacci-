@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reproductor de Historia</title>
+    
+    <style>
+
+/* General */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #1a1a2e;
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+#player-ui {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 900px;
+    background-color: #2a2a3e;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+}
+
+.video-overlay-wrapper {
+    position: relative; 
+    width: 100%; 
+    background-color: #000;
+}
+
+video { 
+    width: 100%; 
+    display: block; 
+}
+
+/* Centrat real del container */
+#choice-container {
+    display: none;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    background-color: rgba(0, 0, 0, 0.7);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+/* Botons centrats */
+.choice-btn {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    max-height: 25%;
+    max-width: 30%;
+    transition: transform 0.2s ease;
+
+
+    margin-top: 250px;
+    padding: 0;
+}
+
+.choice-btn img {
+    width: 100%; 
+    height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+}
+
+.choice-btn:hover { 
+    transform: scale(1.05); 
+}
+/* Contenidor real dels botons */
+.choice-inner {
+    display: flex;
+    gap: 100px;
+    justify-content: center;
+    align-items: center;
+}
+
+
+/* Feedback visual atractiu */
+
+/* Video */
+.video-correct {
+    animation: videoGlowGreen 0.8s ease-out;
+}
+
+.video-wrong {
+    animation: videoGlowRed 0.8s ease-out;
+}
+
+.choice-btn.wrong img {
+    animation: btnWrong 0.8s ease-out;
+    outline: 4px solid rgba(255, 50, 50, 0.9);
+    outline-offset: 4px;
+    box-shadow: 0 0 18px rgba(255, 50, 50, 0.8);
+}
+
+.choice-btn.correct img {
+    animation: btnCorrect 0.8s ease-out;
+    outline: 4px solid rgba(0, 220, 120, 0.9);
+    outline-offset: 4px;
+    box-shadow: 0 0 18px rgba(0, 220, 120, 0.8);
+}
+
+/* Animacions */
+@keyframes videoGlowGreen {
+    0% {
+        box-shadow: 0 0 0 0 rgba(0,255,0,0.0);
+    }
+    40% {
+        box-shadow:
+            0 0 0 6px rgba(0,255,0,0.9),
+            0 0 25px rgba(0,255,0,0.6);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(0,255,0,0.0);
+    }
+}
+
+@keyframes videoGlowRed {
+    0% { box-shadow: 0 0 0 rgba(255,0,0,0); }
+    40% {
+        box-shadow:
+            0 0 0 6px rgba(255,0,0,0.9),
+            0 0 25px rgba(255,0,0,0.6);
+    }
+    70% {
+        box-shadow:
+            0 0 0 6px rgba(255,0,0,0.9),
+            0 0 25px rgba(255,0,0,0.6);
+    }
+    100% { box-shadow: 0 0 0 rgba(255,0,0,0); }
+}
+
+
+@keyframes btnCorrect {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 rgba(0,255,0,0);
+    }
+    40% {
+        transform: scale(1.12);
+        box-shadow: 0 0 20px rgba(0,255,0,0.9);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 rgba(0,255,0,0);
+    }
+}
+
+@keyframes btnWrong {
+    0% {
+        transform: scale(1);
+    }
+    25% {
+        transform: translateX(-6px);
+    }
+    50% {
+        transform: translateX(6px);
+    }
+    75% {
+        transform: translateX(-4px);
+    }
+    100% {
+        transform: translateX(0);
+    }
+}
+
+
+
+    </style>
+</head>
+<body>
+
+    <div id="player-ui">
+        <div class="video-overlay-wrapper">
+            <video id="videoPlayer" controls autoplay muted playsinline></video>
+            <div id="choice-container"></div>
+        </div>
+        <div class="info-container">
+            <h2 id="nodeTitle"></h2>
+            <p id="nodeDescription"></p>
+        </div>
+    </div>
+
+    <script>
+/* Dades de la historia, objecte */
+const storyMap = {
+  "A1": {
+    "videoUrl": "https://www.dropbox.com/scl/fi/puz6hml4e6cmfao2n1ke9/Cap1.mp4?rlkey=10uqtqlj4apttefrczr1dqzcc&st=6z79r78w&raw=1",
+    "choices": [
+      { 
+        image: "https://www.dropbox.com/scl/fi/dpu056i2f5hrpnc0h2xc5/Comprovar-retrovisors.png?rlkey=wf7fhpmg3cnzofrkqe4lbptwt&st=hm29zfpj&raw=1", 
+        target: "C2",
+        isWrong: false
+      },
+      { 
+        image: "https://www.dropbox.com/scl/fi/qqnzpsia5n5yclpdba46y/Canviar-de-marxa.png?rlkey=pwg7zomjakwszglk66guo90ey&st=bnt4s2gi&raw=1", 
+        target: "C9",
+        isWrong: true
+      }
+    ]
+  },
+
+  "C2": {
+    "videoUrl": "https://www.dropbox.com/scl/fi/jruxhz06wv6h85pmf8uil/C2.mp4?rlkey=1tzd8lnard1k4sz50qzy3pmz9&st=ex2ldu9s&raw=1",
+    "choices": [
+      { 
+        image: "https://www.dropbox.com/scl/fi/rsvmou4ep6rb55bqarwpq/no.png?rlkey=3l91kgrmbp6c0itx307d0k8u9&st=urnkp36n&raw=1",
+        target: "C3",
+        isWrong: false
+      },
+      { 
+        image: "https://www.dropbox.com/scl/fi/zpv37vcwriw1eaz1drbfz/si.png?rlkey=rtg6zvwuhilq8lj5com08wxyy&st=cpobl7lv&raw=1",
+        target: "C10",
+        isWrong: true,
+        isSevere: true
+      }
+    ]
+  },
+
+  "C3": {
+    "videoUrl": "https://www.dropbox.com/scl/fi/cx5txiefo3l6hjqtoa836/C3.mp4?rlkey=zkjdmr7t6eplqnxnyg9n5b3nj&st=526axdq7&raw=1",
+    "choices": [
+      { 
+        image: "https://www.dropbox.com/scl/fi/junyb03aqvq01szqckjsr/fi-de-carril.png?rlkey=gmqxp0sz67yeeci09cnpf3jfc&st=6qss67u9&raw=1",
+        target: "C4",
+        isWrong: false
+      },
+      { 
+        image: "https://www.dropbox.com/scl/fi/xk81mib1y2t2wko2uqphr/carril-adicional.png?rlkey=t7cpfrvq7yu3sm7gutx4gp1iy&st=c34zrj98&raw=1",
+        target: "C9",
+        isWrong: true
+      }
+    ]
+  },
+
+  "C4": {
+    "videoUrl": "https://www.dropbox.com/scl/fi/0v2qyyeg3x2fo0tj7hreo/C4.mp4?rlkey=cxqhjjfhd8mpxmv05wglt9zfs&st=8khwbtky&raw=1",
+    "choices": [
+      { 
+        image: "https://www.dropbox.com/scl/fi/vdlunl2xlcfhk04lvfoqj/el-nostre-vehicle.png?rlkey=l686q9j3o3aw5gfq86hxzb84p&st=8iwge3uu&raw=1",
+        target: "C10",
+        isWrong: true,
+        isSevere: true
+      },
+      { 
+        image: "https://www.dropbox.com/scl/fi/611viua97h0b5bli2ahhq/l_altre-vehicle.png?rlkey=merhv65s41x6fzgtngmb5t24d&st=gd2k4kbi&raw=1",
+        target: "C5",
+        isWrong: false
+      }
+    ]
+  },
+
+    "C5": {
+    "videoUrl": "https://www.dropbox.com/scl/fi/h2oekyk8gim708jeq1mrv/C5.mp4?rlkey=h1qskg0sgobvm1eqiokqamozp&st=sif97ldk&raw=1",
+    "choices": [
+      { 
+        image: "https://www.dropbox.com/scl/fi/9iiaw7t0stdbal1p88ex0/es-recomana-anar-a-mes-de-30-km.png?rlkey=v4z8jzwmrsv62evdwlkqeszs2&st=lgx8yxn2&raw=1",
+        target: "C9",
+        isWrong: true
+      },
+      { 
+        image: "https://www.dropbox.com/scl/fi/d0y2add1js708oqrrzheo/prohibit-anar-a-mes-de-30-km.png?rlkey=2qfrvf5zq5ndvz9nv7i33l867&st=gbnely9z&raw=1",
+        target: "C6",
+        isWrong: false
+      }
+    ]
+  },
+
+
+  "C6": {
+    "videoUrl": "https://www.dropbox.com/scl/fi/n85r35b3vxvg82rovlwfm/C6.mp4?rlkey=at7xkbqxeotxm0mgl8nbc3he3&st=btalg2us&raw=1",
+    "choices": [
+      { 
+        image: "https://www.dropbox.com/scl/fi/kl1clxqs5sh641b5i9eqa/no-pot-ha-de-frenar.png?rlkey=zbcxykpb4teo97026czx00jv8&st=q33tch5c&raw=1",
+        target: "C10",
+        isWrong: true,
+        isSevere: true
+      },
+            { 
+        image: "https://www.dropbox.com/scl/fi/acbejsd200txc2m1305ta/Reduint-a-una-marxa-menor.png?rlkey=r2nnoghv4z76mkgcoisynzqn6&st=bbtwmnr3&raw=1",
+        target: "C7",
+        isWrong: false
+      }
+    ]
+  },
+
+  "C7": {
+    "videoUrl": "https://www.dropbox.com/scl/fi/52s1gs76svxw28trucqib/C7.mp4?rlkey=yrr36ys2n8mrsfib372it0yv7&st=38p7ie0m&raw=1",
+    "choices": [
+      { 
+        image: "https://www.dropbox.com/scl/fi/k5ms5ph0x0wey54zdb099/Aparcar-marxa-enrere.png?rlkey=bhwv4wxl24jj1hzuaihavyegd&st=6biaqldn&raw=1",
+        target: "C8",
+        isWrong: false
+      },
+            { 
+        image: "https://www.dropbox.com/scl/fi/gqua48kvv15afsh0yjnra/Aparcar-de-cara.png?rlkey=nge2fjess41vd71fv3vx0bmrw&st=0pne5toz&raw=1",
+        target: "C9",
+        isWrong: true
+      }
+    ]
+  },
+  /* Vídeos d'encert, error lleu i greu */
+  "C8": {
+    "videoUrl": "https://www.dropbox.com/scl/fi/eq5fa2zg7n1dkzr0y7v83/C8.mp4?rlkey=k3qgowzdug2qorkwpa5m363ak&st=l6qghc6t&raw=1",
+    "choices": [
+      { 
+        image: "https://www.dropbox.com/scl/fi/tf09i7g9itm22y5c8e6vv/Reiniciar-test.png?rlkey=lph4o9yrvy1ufeese71qrv7eu&st=k911eicf&raw=1",
+        target: "A1"
+      },
+            { 
+        image: "https://www.dropbox.com/scl/fi/839hse9me5g2mn3z48lrd/Finalitzar-test.png?rlkey=5q2grajwxuhsytuuq3pq47nq3&st=ic8cvsxc&raw=1",
+        target: null
+      }
+    ]
+  },
+    "C9": {
+    "videoUrl": "https://www.dropbox.com/scl/fi/z2rimmciezi8pkh90a4sv/Error-lleu-Hecho-con-Clipchamp.mp4?rlkey=5tcfuazu2kg4vlcvmqw6nvqqa&st=xx0s0giu&raw=1",
+    "choices": []
+  },
+    "C10": {
+    "videoUrl": "https://www.dropbox.com/scl/fi/pvwtibcd6x869pv4aktr0/Error-greu-Hecho-con-Clipchamp.mp4?rlkey=ajoi9qak0imwwdlzilgdit3ul&st=icd78yo1&raw=1",
+    "choices": [{ 
+        image: "https://www.dropbox.com/scl/fi/tf09i7g9itm22y5c8e6vv/Reiniciar-test.png?rlkey=lph4o9yrvy1ufeese71qrv7eu&st=k911eicf&raw=1",
+        target: "A1"
+      },
+            { 
+        image: "https://www.dropbox.com/scl/fi/839hse9me5g2mn3z48lrd/Finalitzar-test.png?rlkey=5q2grajwxuhsytuuq3pq47nq3&st=ic8cvsxc&raw=1",
+        target: null
+      }]
+  }
+};
+
+let failCount = 0;
+let lastFailedNode = null;
+
+/* Reproducció del node */
+
+const videoPlayer = document.getElementById('videoPlayer');
+const choiceContainer = document.getElementById('choice-container');
+
+function renderNode(nodeId) {
+    const node = storyMap[nodeId];
+    choiceContainer.style.display = "none";
+    choiceContainer.innerHTML = "";
+
+    videoPlayer.src = node.videoUrl;
+    videoPlayer.load();
+    videoPlayer.play();
+
+    const showChoices = () => {
+        choiceContainer.style.display = "flex";
+        choiceContainer.innerHTML = "";
+const inner = document.createElement("div");
+inner.className = "choice-inner";
+choiceContainer.appendChild(inner);
+
+/* Si és l'error lleu va al vídeo 9 */
+if (nodeId === "C9") {
+    const btn = document.createElement("button");
+    btn.className = "choice-btn";
+
+    const img = document.createElement("img");
+    img.src = "https://www.dropbox.com/scl/fi/lkpqgxs61abg4lxj68taf/Tornar-a-intentar.png?rlkey=2nlshiyb17nv717ybfqhz3ny4&st=zvde737k&raw=1";
+    btn.appendChild(img);
+
+    btn.onclick = () => {
+        renderNode(lastFailedNode);
+    };
+
+inner.appendChild(btn);
+    return;
+}
+
+
+/* Nodes normals */
+node.choices.forEach(choice => {
+    const btn = document.createElement("button");
+    btn.className = "choice-btn";
+
+    const img = document.createElement("img");
+    img.src = choice.image;
+    btn.appendChild(img);
+btn.onclick = () => {
+    /* Netejar clases prèvies */
+    videoPlayer.classList.remove("video-correct", "video-wrong");
+    btn.classList.remove("correct", "wrong");
+
+    /* Botó de reinici en C8 o C10 */
+    if (choice.target === "A1") {
+        failCount = 0;
+        lastFailedNode = null;
+        renderNode("A1");
+        return;
+    }
+
+    /* Botó de finalitzar test */
+    if (choice.target === null) {
+        videoPlayer.pause();
+        videoPlayer.currentTime = 0;
+        choiceContainer.style.display = "none";
+        return;
+    }
+
+    /* Neteja d'animacions prèvies */
+    choiceContainer.classList.remove("flash-good", "flash-bad");
+
+if (choice.isWrong) {
+    btn.classList.add("wrong");
+    videoPlayer.classList.add("video-wrong");
+
+    /* Desem el node d'error abans que qualsevol timeout només si es greu */
+    if (!choice.isSevere) lastFailedNode = nodeId;
+
+    choiceContainer.classList.add("flash-bad");
+
+    setTimeout(() => {
+        choiceContainer.classList.remove("flash-bad");
+
+        failCount++;
+        console.log(failCount);
+
+        /* Si és → directamente C10 */
+        if (choice.isSevere || failCount >= 3) {
+            renderNode("C10");
+            return;
+        }
+        /* Error lleu va a C9 */
+        renderNode("C9");
+    }, 800); /* Duració del flash */
+    return;
+}
+
+
+
+    /* Resposta incorrecta */
+    choiceContainer.classList.add("flash-good");
+    btn.classList.add("correct");
+    videoPlayer.classList.add("video-correct");
+
+    setTimeout(() => {
+        choiceContainer.classList.remove("flash-good");
+        renderNode(choice.target);
+    }, 800);
+};
+
+
+
+    inner.appendChild(btn);
+});
+
+    };
+
+    videoPlayer.addEventListener("ended", showChoices, { once: true });
+}
+
+/* Inici */
+renderNode("A1");
+
+    </script>
+
+</body>
+</html>
